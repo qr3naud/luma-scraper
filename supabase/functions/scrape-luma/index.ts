@@ -13,7 +13,7 @@ serve(async (req) => {
 
   // Trigger scraper (later we'll call Python or a webhook)
   console.log("Received event URL:", event_url)
-  const webhook = "https://39d0-2600-4041-5d37-200-acc3-dfb7-5dc9-864f.ngrok-free.app/scrape"
+  const webhook = "https://luma-scraper.onrender.com/scrape"
 
 
   return new Response(JSON.stringify({ ok: true, message: `Received ${event_url}` }), {
