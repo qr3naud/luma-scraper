@@ -1,0 +1,106 @@
+[
+  {
+    "name": "luma.evt-ClXbvAyb6RBHu74.registered-with",
+    "value": "usr-SkSnPOkLujGiLun",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false
+  },
+  {
+    "name": "luma.evt-ZF4LJfBHuSOMHEE.registered-with",
+    "value": "usr-SkSnPOkLujGiLun",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false
+  },
+  {
+    "name": "luma.auth-session-key",
+    "value": "usr-SkSnPOkLujGiLun.rjyfq6agwipa104ygntq",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": 1750113003.677209,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "luma.evt-80ZVCDJyjCD0c4h.registered-with",
+    "value": "usr-SkSnPOkLujGiLun",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false
+  },
+  {
+    "name": "__stripe_mid",
+    "value": "6d18d9f6-426d-4eb7-9997-e9d516041865f0019d",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": 1777721165,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "luma.evt-9VQy1UvFpvaZeRe.registered-with",
+    "value": "usr-SkSnPOkLujGiLun",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false
+  },
+  {
+    "name": "luma.evt-dKSFwfJ4pGe3ays.registered-with",
+    "value": "usr-SkSnPOkLujGiLun",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false
+  },
+  {
+    "name": "luma.did",
+    "value": "5d4eoxty5l13pp62qly0smgnr1l1if",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": 1780744903.035759,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "luma.first-page",
+    "value": "%2Fxg3gxhgy",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": 1780744903.035902,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "luma.evt-pHG5zKoLwc9TdWj.registered-with",
+    "value": "usr-SkSnPOkLujGiLun",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false
+  },
+  {
+    "name": "luma.native-referrer",
+    "value": "https%3A%2F%2Flu.ma%2Fhome",
+    "domain": ".lu.ma",
+    "path": "/",
+    "expires": 1780769037.57023,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Strict"
+  }
+]
