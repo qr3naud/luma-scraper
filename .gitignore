@@ -52,6 +52,7 @@ geckodriver
 .env.local
 .env.production
 secrets.json
+cookies.json
 
 # Chrome user data
 /tmp/chrome-user-data/ 
