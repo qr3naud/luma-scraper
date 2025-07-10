@@ -1,24 +1,64 @@
-# Luma Scraper API
+# Luma Event Matcher
 
-A Python Flask API that scrapes Luma event attendee data and sends it to Clay for processing.
+A full-stack application where event-goers can input a Luma event URL with a description of who they want to meet, and receive the top 5 people they should connect with, including personalized LinkedIn messages.
 
-## Architecture
+## 🏗️ Architecture
 
-This scraper is part of a larger system:
-1. **Frontend**: Lovable app (separate repo: `luma-matcher-frontend`)
-2. **Scraper API**: This repository
-3. **Processing**: Clay automation platform
-4. **Flow**: Frontend → Scraper → Clay → Frontend
+```
+Frontend (Lovable) → Backend (Flask API) → Clay (Processing) → Frontend (Results)
+```
 
-## API Endpoints
+**Flow:**
+1. User submits event URL + description via Lovable frontend
+2. Frontend calls Flask API to scrape event attendees  
+3. Backend sends contact data + user intent to Clay
+4. Clay processes data, finds top 5 matches, creates LinkedIn messages
+5. Clay sends results back to frontend via webhook
+
+## 📁 Project Structure
+
+```
+luma-matcher/
+├── frontend/               # Lovable React app
+│   └── (Lovable manages this directory)
+├── backend/                # Python Flask API + Selenium scraper
+│   ├── scraper_api.py     # Main Flask API
+│   ├── luma_scraper.py    # Standalone scraper
+│   ├── requirements.txt   # Python dependencies
+│   ├── cookies.json       # Luma authentication
+│   └── Dockerfile         # For deployment
+├── shared/                 # Shared TypeScript types
+│   └── types.ts           # API contract definitions
+└── README.md              # This file
+```
+
+## 🚀 Quick Start
+
+### Backend Setup
+```bash
+cd backend
+pip install -r requirements.txt
+python3 scraper_api.py
+```
+API will be available at `http://localhost:10000`
+
+### Frontend Setup
+The frontend is managed by Lovable. Configure it to call your backend API.
+
+### Development Workflow
+1. **Test backend locally**: Ensure scraping and Clay integration works
+2. **Connect frontend**: Point Lovable to your local/deployed API
+3. **Deploy**: Backend to Render/Railway, frontend via Lovable
+
+## 📡 API Contract
 
 ### POST /scrape
-Scrapes a Luma event and sends attendee data to Clay for processing.
+Scrapes event attendees and sends to Clay for processing.
 
-**Request:**
+**Request:** (See `shared/types.ts` for TypeScript definitions)
 ```json
 {
-  "event_url": "https://lu.ma/your-event",
+  "event_url": "https://lu.ma/ai-startup-meetup",
   "description": "Looking for AI startup founders",
   "callback_url": "https://your-frontend.com/api/results"
 }
@@ -28,48 +68,64 @@ Scrapes a Luma event and sends attendee data to Clay for processing.
 ```json
 {
   "status": "success",
-  "message": "Scraped 45 contacts and sent to Clay",
-  "contacts_found": 45
+  "message": "Scraped 25 contacts and sent to Clay",
+  "contacts_found": 25
 }
 ```
 
 ### GET /health
 Health check endpoint.
 
-## Setup
+## 🔧 Configuration
 
-1. Install dependencies:
+### Environment Variables
+- `CLAY_WEBHOOK_URL`: Clay webhook endpoint
+- `MAX_USERS`: Maximum users to scrape (default: 5)
+
+### Local Development
+For local testing with external webhooks:
 ```bash
-pip install -r requirements.txt
-```
-
-2. Add your Luma cookies to `cookies.json`
-
-3. Update `CLAY_WEBHOOK` in `scraper_api.py`
-
-4. Run locally:
-```bash
-python3 scraper_api.py
-```
-
-5. For public access (development):
-```bash
+# Expose your local API publicly
 npx ngrok http 10000
 ```
 
-## Deployment
+## 🚀 Deployment
 
-Deploy to Render.com, Railway, or similar service that supports Selenium.
+### Backend
+Deploy to services that support Selenium:
+- **Render.com** (Recommended)
+- **Railway**  
+- **Heroku**
 
-## Environment Variables
+### Frontend
+Lovable handles frontend deployment automatically.
 
-- `CLAY_WEBHOOK_URL`: Clay webhook endpoint
-- `MAX_USERS`: Maximum users to scrape (default: 50)
+## 🔗 Integration Guide
 
-## Integration
+### Frontend → Backend
+```typescript
+// Use shared types for type safety
+import { ScrapeRequest, ScrapeResponse } from '../shared/types';
 
-The frontend should call this API when a user submits an event URL. Clay will process the data and send results back to the frontend's callback URL.
+const response = await fetch('/api/scrape', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(requestData)
+});
+```
 
-## Related Repositories
+### Clay → Frontend
+Clay will send results to your `callback_url` using the `ClayCallback` type from `shared/types.ts`.
 
-- Frontend: `luma-matcher-frontend` (Lovable) 
+## 🎯 Next Steps
+
+1. **Test the scraper**: Use a real Luma event URL
+2. **Configure Clay**: Set up the automation workflow
+3. **Connect frontend**: Integrate with your Lovable app
+4. **Deploy**: Both backend and frontend to production
+
+## 📝 Notes
+
+- **Cookies**: The `cookies.json` file contains authentication for Luma
+- **Type Safety**: Use `shared/types.ts` in both frontend and backend
+- **Monorepo Benefits**: Single source of truth, coordinated deployments 
