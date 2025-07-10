@@ -1,0 +1,400 @@
+{
+  "name": "Luma Scraper Workflow",
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "luma-scraper",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      }
+    },
+    {
+      "id": "scrape-main-url",
+      "name": "Scrape Main URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "url": "={{ $json.body.url }}",
+        "method": "GET",
+        "options": {
+          "timeout": 30000,
+          "followRedirect": true
+        }
+      }
+    },
+    {
+      "id": "extract-user-links",
+      "name": "Extract User Profile Links",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "sourceData": "json",
+        "dataPropertyName": "data",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "userProfileLinks",
+              "cssSelector": "a[href*=\"/u/\"], a[href*=\"/profile/\"], a[href*=\"/user/\"], .attendee-card a, .user-card a, .profile-link",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "userNames",
+              "cssSelector": ".attendee-name, .user-name, .profile-name, [data-testid=\"attendee-name\"]",
+              "returnArray": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "process-links",
+      "name": "Process Profile Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "language": "javascript",
+        "jsCode": "// Process and clean profile links\nconst userProfileLinks = $json.userProfileLinks || [];\nconst userNames = $json.userNames || [];\n\n// Clean and validate URLs\nconst cleanedLinks = userProfileLinks\n  .filter(link => link && typeof link === 'string')\n  .map(link => {\n    // Handle relative URLs\n    if (link.startsWith('/')) {\n      const baseUrl = $('Webhook').item.json.body.url;\n      const urlObj = new URL(baseUrl);\n      return urlObj.origin + link;\n    }\n    return link;\n  })\n  .filter(link => {\n    try {\n      new URL(link);\n      return true;\n    } catch {\n      return false;\n    }\n  })\n  .slice(0, 50); // Limit to 50 profiles max\n\n// Return each link as a separate item\nreturn cleanedLinks.map((link, index) => ({\n  profileUrl: link,\n  userName: userNames[index] || null,\n  index: index\n}));"
+      }
+    },
+    {
+      "id": "scrape-user-profile",
+      "name": "Scrape User Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300],
+      "parameters": {
+        "url": "={{ $json.profileUrl }}",
+        "method": "GET",
+        "options": {
+          "timeout": 15000,
+          "followRedirect": true,
+          "ignoreHttpStatusErrors": true
+        }
+      }
+    },
+    {
+      "id": "extract-profile-data",
+      "name": "Extract Profile Data", 
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "sourceData": "json",
+        "dataPropertyName": "data",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "name",
+              "cssSelector": ".profile-name, .user-name, h1, .name, [data-testid=\"profile-name\"], .text-xl, .font-bold"
+            },
+            {
+              "key": "title",
+              "cssSelector": ".profile-title, .user-title, .job-title, .position, [data-testid=\"profile-title\"], .text-gray-600"
+            },
+            {
+              "key": "bio",
+              "cssSelector": ".profile-bio, .user-bio, .description, .about, [data-testid=\"profile-bio\"], .bio"
+            },
+            {
+              "key": "company",
+              "cssSelector": ".company, .organization, .workplace, [data-testid=\"company\"]"
+            },
+            {
+              "key": "location",
+              "cssSelector": ".location, .city, .address, [data-testid=\"location\"]"
+            },
+            {
+              "key": "linkedin",
+              "cssSelector": "a[href*=\"linkedin.com\"], .linkedin-link",
+              "attribute": "href"
+            },
+            {
+              "key": "twitter",
+              "cssSelector": "a[href*=\"twitter.com\"], a[href*=\"x.com\"], .twitter-link",
+              "attribute": "href"
+            },
+            {
+              "key": "website",
+              "cssSelector": ".website, .homepage, a[href*=\"http\"]:not([href*=\"linkedin\"]):not([href*=\"twitter\"]):not([href*=\"x.com\"])",
+              "attribute": "href"
+            },
+            {
+              "key": "email",
+              "cssSelector": "a[href^=\"mailto:\"], .email",
+              "attribute": "href"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "enrich-user-data",
+      "name": "Enrich User Data",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1560, 300],
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional data enrichment specialist. Analyze the provided user profile data and enhance it with professional insights. Return ONLY a valid JSON object with no additional text."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this user profile and provide enriched professional insights:\n\nName: {{ $json.name || 'Not provided' }}\nTitle: {{ $json.title || 'Not provided' }}\nCompany: {{ $json.company || 'Not provided' }}\nBio: {{ $json.bio || 'Not provided' }}\nLocation: {{ $json.location || 'Not provided' }}\nLinkedIn: {{ $json.linkedin || 'Not provided' }}\nTwitter: {{ $json.twitter || 'Not provided' }}\nWebsite: {{ $json.website || 'Not provided' }}\n\nReturn ONLY this JSON structure:\n{\n  \"industry\": \"string - professional industry\",\n  \"seniority\": \"entry|mid|senior|executive\",\n  \"expertise\": \"string - key areas of expertise\",\n  \"networkingValue\": \"string - networking potential assessment\",\n  \"keyInsights\": [\"insight1\", \"insight2\"],\n  \"estimatedInfluence\": \"Low|Medium|High\"\n}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 300,
+          "temperature": 0.3
+        }
+      }
+    },
+    {
+      "id": "score-against-intent",
+      "name": "Score Against Intent",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional matching specialist. Score how well a user profile matches given criteria on a scale of 1-100. Return ONLY a valid JSON object."
+            },
+            {
+              "role": "user",
+              "content": "Score this user profile against: \"{{ $('Webhook').item.json.body.userIntent }}\"\n\nProfile:\nName: {{ $json.name || 'Unknown' }}\nTitle: {{ $json.title || 'N/A' }}\nCompany: {{ $json.company || 'N/A' }}\nBio: {{ $json.bio || 'N/A' }}\nLocation: {{ $json.location || 'N/A' }}\n\nReturn ONLY this JSON:\n{\n  \"score\": 85,\n  \"reasoning\": \"Brief explanation\",\n  \"matchFactors\": [\"factor1\", \"factor2\"],\n  \"concerns\": [\"concern1\"]\n}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 200,
+          "temperature": 0.2
+        }
+      }
+    },
+    {
+      "id": "combine-data",
+      "name": "Combine Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 200],
+      "parameters": {
+        "language": "javascript",
+        "jsCode": "// Combine profile data with AI insights\nconst profileData = $('Extract Profile Data').item.json;\nconst enrichmentResponse = $('Enrich User Data').item.json;\nconst scoringResponse = $('Score Against Intent').item.json;\n\n// Parse AI responses safely\nlet enrichmentData = {};\nlet scoringData = {};\n\ntry {\n  const enrichmentText = enrichmentResponse.choices?.[0]?.message?.content || '{}';\n  enrichmentData = JSON.parse(enrichmentText.replace(/```json\\n?|```\\n?/g, ''));\n} catch (e) {\n  console.log('Failed to parse enrichment data:', e);\n  enrichmentData = {\n    industry: 'Unknown',\n    seniority: 'Unknown',\n    expertise: 'Not available',\n    networkingValue: 'Unknown',\n    keyInsights: [],\n    estimatedInfluence: 'Unknown'\n  };\n}\n\ntry {\n  const scoringText = scoringResponse.choices?.[0]?.message?.content || '{}';\n  scoringData = JSON.parse(scoringText.replace(/```json\\n?|```\\n?/g, ''));\n} catch (e) {\n  console.log('Failed to parse scoring data:', e);\n  scoringData = {\n    score: 0,\n    reasoning: 'Could not analyze',\n    matchFactors: [],\n    concerns: ['Analysis failed']\n  };\n}\n\n// Return combined data\nreturn {\n  // Original profile data\n  name: profileData.name || $('Process Profile Links').item.json.userName || 'Unknown',\n  title: profileData.title || '',\n  company: profileData.company || '',\n  bio: profileData.bio || '',\n  location: profileData.location || '',\n  linkedin: profileData.linkedin || '',\n  twitter: profileData.twitter || '',\n  website: profileData.website || '',\n  email: profileData.email || '',\n  profileUrl: $('Process Profile Links').item.json.profileUrl || '',\n  \n  // Enriched data\n  industry: enrichmentData.industry || 'Unknown',\n  seniority: enrichmentData.seniority || 'Unknown',\n  expertise: enrichmentData.expertise || '',\n  networkingValue: enrichmentData.networkingValue || '',\n  keyInsights: enrichmentData.keyInsights || [],\n  estimatedInfluence: enrichmentData.estimatedInfluence || 'Unknown',\n  \n  // Scoring data\n  score: scoringData.score || 0,\n  reasoning: scoringData.reasoning || '',\n  matchFactors: scoringData.matchFactors || [],\n  concerns: scoringData.concerns || [],\n  \n  // Metadata\n  processedAt: new Date().toISOString()\n};"
+      }
+    },
+    {
+      "id": "aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [2220, 200],
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      }
+    },
+    {
+      "id": "final-processing",
+      "name": "Final Processing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 200],
+      "parameters": {
+        "language": "javascript",
+        "jsCode": "// Process aggregated results and return top 5\nconst allUsers = $json.data || [];\n\n// Filter and sort users by score\nconst validUsers = allUsers\n  .filter(user => user && typeof user.score === 'number' && user.score > 0)\n  .sort((a, b) => b.score - a.score);\n\n// Get top 5 users\nconst topUsers = validUsers.slice(0, 5);\n\n// Calculate summary stats\nconst totalProcessed = allUsers.length;\nconst averageScore = validUsers.length > 0 \n  ? Math.round(validUsers.reduce((sum, user) => sum + user.score, 0) / validUsers.length)\n  : 0;\n\n// Return final response\nreturn {\n  success: true,\n  totalUsersProcessed: totalProcessed,\n  validUsers: validUsers.length,\n  averageScore: averageScore,\n  topUsers: topUsers,\n  intent: $('Webhook').item.json.body.userIntent || 'No intent provided',\n  processedAt: new Date().toISOString(),\n  sourceUrl: $('Webhook').item.json.body.url || 'No URL provided'\n};"
+      }
+    },
+    {
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2660, 200],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, GET, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Scrape Main URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Main URL": {
+      "main": [
+        [
+          {
+            "node": "Extract User Profile Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract User Profile Links": {
+      "main": [
+        [
+          {
+            "node": "Process Profile Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Profile Links": {
+      "main": [
+        [
+          {
+            "node": "Scrape User Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape User Profile": {
+      "main": [
+        [
+          {
+            "node": "Extract Profile Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Profile Data": {
+      "main": [
+        [
+          {
+            "node": "Enrich User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich User Data": {
+      "main": [
+        [
+          {
+            "node": "Score Against Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Against Intent": {
+      "main": [
+        [
+          {
+            "node": "Combine Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Data": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Final Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Processing": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "instanceId": "luma-scraper-instance"
+  },
+  "id": "luma-scraper-workflow",
+  "tags": ["scraping", "ai", "user-scoring", "luma"]
+} 

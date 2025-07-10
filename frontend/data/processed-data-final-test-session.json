@@ -1,0 +1,14 @@
+{
+  "attendees": [
+    {
+      "name": "Bob Wilson",
+      "email": "bob@example.com",
+      "company": "Final Test Co",
+      "leadScore": 88
+    }
+  ],
+  "eventUrl": "https://lu.ma/final-test",
+  "sessionId": "final-test-session",
+  "timestamp": "2025-07-10T21:08:59.272Z",
+  "status": "completed"
+}

@@ -1,0 +1,21 @@
+{
+  "attendees": [
+    {
+      "name": "John Doe",
+      "email": "john@example.com",
+      "company": "Test Corp",
+      "leadScore": 85
+    },
+    {
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "company": "Sample Inc",
+      "leadScore": 92
+    }
+  ],
+  "eventUrl": "https://lu.ma/test-event",
+  "profileIntent": "Looking for tech startup founders",
+  "sessionId": "test-session-123",
+  "timestamp": "2025-07-10T21:07:49.172Z",
+  "status": "completed"
+}

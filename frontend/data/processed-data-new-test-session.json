@@ -1,0 +1,14 @@
+{
+  "attendees": [
+    {
+      "name": "Alice Johnson",
+      "email": "alice@example.com",
+      "company": "NewTech Ltd",
+      "leadScore": 95
+    }
+  ],
+  "eventUrl": "https://lu.ma/updated-event",
+  "sessionId": "new-test-session",
+  "timestamp": "2025-07-10T21:08:23.732Z",
+  "status": "completed"
+}
