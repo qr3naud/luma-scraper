@@ -17,7 +17,7 @@ app = Flask(__name__)
 CORS(app)  # Allow frontend to call this API
 
 # Configuration
-N8N_WEBHOOK = "https://qrenaud.app.n8n.cloud/webhook-test/user"
+N8N_WEBHOOK = "https://qrenaud.app.n8n.cloud/webhook/user"
 MAX_USERS = int(os.getenv("MAX_USERS", "20"))
 PROFILE_SCRAPING_ENABLED = True  # Set to False to disable profile visiting
 

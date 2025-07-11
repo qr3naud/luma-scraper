@@ -15,7 +15,7 @@ from urllib.parse import urljoin, urlparse
 
 # --- Config ---
 MAX_USERS = 20
-N8N_WEBHOOK = "https://qrenaud.app.n8n.cloud/webhook-test/user"
+N8N_WEBHOOK = "https://qrenaud.app.n8n.cloud/webhook/user"
 PROFILE_SCRAPING_ENABLED = True  # Set to False to disable profile visiting
 
 # --- Input ---
@@ -310,8 +310,8 @@ for i in range(8):
 guest_blocks = driver.find_elements(By.XPATH, "//div[contains(@class, 'gap-2 spread')]")
 print(f"👥 Found {len(guest_blocks)} guests in modal")
 
-contacts = []
-
+# First, extract all basic data from modal (avoid stale references)
+basic_contacts = []
 for idx, guest in enumerate(guest_blocks):
     if idx >= MAX_USERS:
         print(f"🚫 Reached max users limit ({MAX_USERS})")
@@ -330,18 +330,33 @@ for idx, guest in enumerate(guest_blocks):
     except:
         profile_url = None
 
-    print(f"👤 Processing {idx+1}/{min(len(guest_blocks), MAX_USERS)}: {name}")
+    # Extract basic social links from modal (before navigation)
+    try:
+        raw_links = [l.get_attribute("href") for l in guest.find_elements(By.TAG_NAME, "a")]
+        cleaned_links = list(set([link for link in raw_links if link]))
+        modal_socials = extract_socials(cleaned_links)
+    except:
+        modal_socials = {}
 
-    # Extract basic social links from modal
-    raw_links = [l.get_attribute("href") for l in guest.find_elements(By.TAG_NAME, "a")]
-    cleaned_links = list(set(raw_links))
-    modal_socials = extract_socials(cleaned_links)
+    basic_contacts.append({
+        "name": name,
+        "profile_url": profile_url,
+        "modal_socials": modal_socials
+    })
+
+# Now process each contact with enhanced profile visiting
+contacts = []
+for idx, basic_contact in enumerate(basic_contacts):
+    name = basic_contact["name"]
+    profile_url = basic_contact["profile_url"]
+    
+    print(f"👤 Processing {idx+1}/{len(basic_contacts)}: {name}")
 
     contact = {
         "name": name,
         "profile_url": profile_url,
         "profile_scraped": False,
-        **modal_socials
+        **basic_contact["modal_socials"]
     }
 
     # Enhanced: Visit user profile for comprehensive social links

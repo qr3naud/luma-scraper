@@ -1,0 +1,17 @@
+{
+  "event_url": "https://lu.ma/9uxgw8l4?tk=b5jKIu",
+  "user_intent": "Find relevant people",
+  "contacts": [
+    {
+      "name": "Silvia Mogas",
+      "profile_url": "https://lu.ma/user/SilviaMogas",
+      "profile_scraped": true,
+      "linkedin": "https://linkedin.com/in/silviamogas",
+      "twitter": "https://twitter.com/silviamogas",
+      "bio": "Product Manager at Tech Company",
+      "title": "Senior PM"
+    }
+  ],
+  "total_found": 20,
+  "scraped_at": "2025-07-11T01:05:49.087973"
+}
